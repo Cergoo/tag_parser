@@ -1,12 +1,12 @@
 [package]
 name = "tag_parser"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "just parse tags like html"
 license = "MIT"
-repository = "https://github.com/Cergoo/take_sni"
+repository = "https://github.com/Cergoo/tag_parser"
 categories = ["parsing"]
-documentation = "https://docs.rs/take_sni"
+documentation = "https://docs.rs/tag_parser"
 readme = "README.md"
 
 [dependencies]

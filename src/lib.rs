@@ -12,7 +12,7 @@ pub enum Item<I> {
 pub struct Tag<I> {
 	pub name: I,
 	pub attributes: Option<Vec<(I,I)>>,
-	pub items: Vec<Item<I>>,
+	pub items: Option<Vec<Item<I>>>,
 }
 
 const OPEN_TAG_NOTFOUND:  &str = r#"opent tag '<' not found"#;
@@ -50,27 +50,34 @@ fn parse_tag(input: &[u8]) -> ParseResult<u8,Item<&[u8]>> {
 	let value_parser = fmap(between(quotes, &VALUE, quotes).msg_err(VALUE_ERR),<[u8]>::trim_ascii);
 	let text  = fmap(TEXT.msg_err(TEXT_ERR1),|x|{Item::<&[u8]>::IText(<[u8]>::trim_ascii(x))});
 	let attrs = sep_pair(name_parser, sep, value_parser).msg_err(ATTR_ERR).more().option();
+	let close_slash = between_opt(space, any(b"/"), space);
 
     // firs line tag
-	let (input, (tag_name, tag_attrs)) = between(open, pair(name_parser, attrs), close)
+	let (input, (tag_name, tag_attrs)) = right(open, pair(name_parser, attrs))
 		.msg_err(HEAD_ERR).strerr().parse(input)?;
-	
-    // inner content
-	let (input, it) = (text,parse_tag).alt().msg_err(CONTENT_ERR).more().strerr().parse(input)?;
-    
-    // close line tag
-	let (input, _) = between(open, pair(any(b"/"), starts_with(tag_name)), close)
-		.msg_err(END_TAG_NOTFOUND).strerr().parse(input)?;
+    // /> self closed tag
+	let (input, cl_slash) = left(close_slash.option(),close).strerr().parse(input)?;
+	if cl_slash.is_none() {
+    	// inner content
+		let (input, it) = (text,parse_tag).alt().msg_err(CONTENT_ERR).more().strerr().parse(input)?;
+    	// close line tag
+		let (input, _) = between(open, pair(close_slash, starts_with(tag_name)), close)
+			.msg_err(END_TAG_NOTFOUND).strerr().parse(input)?;
 
-	Ok((input, Item::<&[u8]>::ITag(Tag {
-		name: tag_name,
-		attributes: tag_attrs,
-		items: it,
-	})))
+		return Ok((input, Item::<&[u8]>::ITag(Tag {
+			name: tag_name,
+			attributes: tag_attrs,
+			items: Some(it),
+		})));
+	}
+		Ok((input, Item::<&[u8]>::ITag(Tag {
+			name: tag_name,
+			attributes: tag_attrs,
+			items: None,
+		})))	
 }
 
 pub fn parse<'a>(input: &'a[u8]) -> ParseResult<'a,u8,Vec<Item::<&'a[u8]>>> {
 	let text  = fmap(TEXT.msg_err(TEXT_ERR1),|x|{Item::<&[u8]>::IText(<[u8]>::trim_ascii(x))});
-
 	(text,parse_tag).alt().msg_err(CONTENT_ERR).more().strerr().parse(input)
 }

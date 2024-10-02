@@ -10,6 +10,7 @@ r#"<poet author="Byron" title="The Girl of Cadiz" date="1809">
 Oh never talk again to me
 </bold>
 Of northern climes and British ladies;
+<comment this="exampl" />
 It has not been your lot to see,
 Like me, the lovely Girl of Cadiz.
 Although her eye be not of blue,
